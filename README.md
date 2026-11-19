@@ -5,12 +5,12 @@ Generátor mapových plakátů s průvodcem v pěti krocích. Zdrojový kód je 
 ## Architektura
 
 - React + Vite, MapLibre GL JS
-- Vektorový podklad OpenFreeMap ve stylu Liberty nebo Bright
+- Vektorový podklad OpenFreeMap ve stylu Liberty nebo Bright; v průvodci je dostupný také záložní standardní rastrový podklad OpenStreetMap
 - Žádné požadavky na Overpass API a žádné plošné přepisování všech vrstev podkladu
 - Možnost zvýraznění kolejí jednoduchou doplňkovou vrstvou (pokud jsou potřebné informace ve vector tiles)
 - Výběr lokality přes Nominatim, ruční posouvání a přiblížení přímo na mapě uvnitř plakátu
 - Samostatný textový a barevný rám plakátu
-- Export PNG ze současného WebGL náhledu (není to vektorový export)
+- Export PNG ze současného WebGL náhledu (není to vektorový export). Před uložením se kontroluje, zda mapový canvas obsahuje viditelná data; prázdné PNG se nesmí úspěšně exportovat.
 - Automatické ukládání nastavení lokálně v prohlížeči do `mapposter-clean-v3`
 
 ## Spuštění
@@ -39,7 +39,7 @@ Build vytváří složku `dist` a GitHub Actions ji publikuje na GitHub Pages. V
 - Nezávislý render mapy ve vysokém rozlišení: PNG používá aktuální WebGL viewport, který je při exportu zvětšen
 - Automatické integrační testy s živými geografickými dlaždicemi
 
-Při potížích s načtením mapy lze zobrazit diagnostický stav přímo uvnitř plakátu a zkusit načtení znovu.
+Při potížích s načtením mapy lze zobrazit diagnostický stav přímo uvnitř plakátu, zkusit načtení znovu nebo v kroku Vrstvy přepnout na OpenStreetMap – záložní podklad. Rastrový fallback nezvýrazňuje jednotlivé železniční koleje červenou barvou.
 
 ## Mapová data
 
