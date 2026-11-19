@@ -41,3 +41,9 @@ input[type=range],.checks input{accent-color:var(--anlex)}
 .stage #poster svg{pointer-events:none;user-select:none}
 .workspace-head #status{max-width:390px;overflow-wrap:anywhere}
 @media(max-width:600px){.poster-toolbar{align-items:flex-start}.stage #poster{touch-action:none}}
+
+/* Map loading diagnostics */
+.load-state{display:flex;flex-direction:column;align-items:flex-end;text-align:right;gap:5px;max-width:min(52%,520px);min-width:0}
+.load-state #status{font-weight:700;color:#dbe5ee;font-size:12px;max-width:100%}
+.load-state #diagnostics{font-size:10px;color:#90a3b8;overflow-wrap:anywhere;line-height:1.5;max-width:100%}
+@media(max-width:600px){.load-state{max-width:50%}.load-state #diagnostics{font-size:9px}}
