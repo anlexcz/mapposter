@@ -3,7 +3,13 @@ import maplibregl from 'maplibre-gl';
 
 const KEY='mapposter-clean-v3';
 const DEFAULT={center:[14.4515,50.132],zoom:14.5,bearing:0,title:'VOZOVNA KOBYLISY',subtitle:'ČESKO',format:'2:3',accent:'#ff3600',paper:'dark',rails:true,style:'liberty'};
-const STYLES={liberty:'https://tiles.openfreemap.org/styles/liberty',bright:'https://tiles.openfreemap.org/styles/bright'};
+const STYLES={
+ liberty:'https://tiles.openfreemap.org/styles/liberty',
+ bright:'https://tiles.openfreemap.org/styles/bright',
+ raster:{version:8,name:'OpenStreetMap raster fallback',
+  sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors'}},
+  layers:[{id:'osm-tiles',type:'raster',source:'osm'}]}
+};
 const STEPS=['Lokalita','Kompozice','Vrstvy','Vzhled','Export'];
 function load(){
  try{const saved=JSON.parse(localStorage.getItem(KEY));if(saved && Array.isArray(saved.center)&&saved.center.length===2)return {...DEFAULT,...saved};}catch{}
@@ -128,7 +134,7 @@ export default function App(){
    }else{
     setMapPhase('error');
     setStatus('Mapové podklady jsou prázdné');
-    setDetail('MapLibre nedokázal vykreslit mapové dlaždice. Zkus znovu načíst mapu nebo přepnout Liberty / Bright.');
+    setDetail('MapLibre nevykreslil geografická data. V kroku Vrstvy můžeš přepnout na záložní podklad OpenStreetMap.');
    }
   });
   map.on('error',event=>{
@@ -232,7 +238,7 @@ export default function App(){
      {step===1&&<div className="fields"><label>Formát</label><select value={s.format} onChange={e=>patch({format:e.target.value})}><option value="2:3">2:3 – klasický plakát</option><option value="3:4">3:4 – portrét</option><option value="1:1">1:1 – čtverec</option></select>
       <label>Přiblížení <output>{s.zoom.toFixed(1)}</output></label><input type="range" min="3" max="19" step=".1" value={s.zoom} onChange={e=>mapRef.current?.zoomTo(+e.target.value,{duration:0})}/>
       <label>Natočení <output>{s.bearing.toFixed(0)}°</output></label><input type="range" min="-180" max="180" value={s.bearing} onChange={e=>mapRef.current?.rotateTo(+e.target.value,{duration:0})}/></div>}
-     {step===2&&<div className="fields"><label>Podklad mapy</label><select value={s.style} onChange={e=>changeStyle(e.target.value)}><option value="liberty">OpenFreeMap Liberty</option><option value="bright">OpenFreeMap Bright</option></select>
+     {step===2&&<div className="fields"><label>Podklad mapy</label><select value={s.style} onChange={e=>changeStyle(e.target.value)}><option value="liberty">OpenFreeMap Liberty</option><option value="bright">OpenFreeMap Bright</option><option value="raster">OpenStreetMap – záložní podklad</option></select>
       <label className="check"><span>Zvýraznit koleje (pokud je zdroj obsahuje)</span><input type="checkbox" checked={s.rails} onChange={e=>patch({rails:e.target.checked})}/></label>
       <p className="info">Mapové vrstvy záměrně nepřebarvujeme hromadně. Nejdřív ověřujeme funkční geografický podklad.</p></div>}
      {step===3&&<div className="fields"><label>Barva kolejí</label><div className="swatches">{['#ff3600','#c02caa','#005682','#00aeae','#e5af38'].map(color=><button key={color} style={{background:color}} className={s.accent===color?'chosen':''} title={color} aria-label={'Barva '+color} onClick={()=>patch({accent:color})}/>)}</div>
