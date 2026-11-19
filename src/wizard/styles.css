@@ -18,3 +18,7 @@
 @media(max-width:1050px){.layout{grid-template-columns:320px minmax(0,1fr)}.sidebar{padding:20px 16px}.workspace{padding:19px}.stage{padding:20px 54px;min-height:530px}}
 @media(max-width:790px){.layout{display:flex;flex-direction:column}.sidebar{border-right:0;border-bottom:1px solid #303841}.steps{display:flex;overflow-x:auto}.steps button{flex:none}.editor{min-height:0}.workspace{padding:16px}.stage{min-height:520px}.paper{width:min(100%,370px)}.poster-title{font-size:clamp(22px,5vw,35px)}.poster-subtitle{font-size:9px}}
 @media(max-width:520px){.header{padding:0 14px;height:58px}.logo{font-size:14px}.logo>span{font-size:20px}.sidebar{padding:17px}.sidebar h1{font-size:20px}.workspace-head h2{font-size:18px}.workspace-head>span{font-size:9px}.stage{min-height:490px;padding:15px 49px 15px 12px}.paper{width:min(100%,310px)}.zoom-tools{right:7px;top:10px}.zoom-tools button{width:31px;height:31px}.poster-title{font-size:clamp(19px,5.3vw,28px)}.poster-subtitle{font-size:7px}.attribution{font-size:6px}}
+
+/* Keep map interactive even while status or tile requests are pending. */
+.map-message{inset:auto 8px 8px 8px;top:auto;min-height:0;padding:9px 10px;gap:5px;border-radius:4px;display:flex;align-items:flex-start;text-align:left;background:#141a22e8;pointer-events:none;max-height:95px;overflow:auto}
+.map-message strong{font-size:10px}.map-message span{font-size:9px;max-width:100%}.map-message button{pointer-events:auto;font-size:9px;padding:5px 7px;align-self:flex-start}
