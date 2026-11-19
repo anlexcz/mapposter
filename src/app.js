@@ -44,7 +44,7 @@ function svgMarkup(){
   const coords=Math.abs(state.lat).toFixed(4)+"°"+latDir+", "+Math.abs(state.lon).toFixed(4)+"°"+lonDir;
   const topH=Math.round(h*.77);
   let fontSize=title.length>38?37:title.length>28?47:60;
-  const words=title.split(/\\s+/);
+  const words=title.split(/\s+/);
   const lines=[];let line="";
   for(const word of words){if((line+" "+word).length>(title.length>38?32:27) && line){lines.push(line);line=word;}else line+=(line?" ":"")+word;}
   if(line)lines.push(line);
@@ -124,7 +124,7 @@ $("customColor").addEventListener("input",e=>{state.color=e.target.value;documen
 function download(blob,filename){
  const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-const filename=()=>("mapposter-"+($("titleText").value||"mapa").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,55));
+const filename=()=>("mapposter-"+($("titleText").value||"mapa").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,55));
 $("svgExport").addEventListener("click",()=>download(new Blob([svgMarkup()],{type:"image/svg+xml;charset=utf-8"}),filename()+".svg"));
 $("pngExport").addEventListener("click",async()=>{
  const button=$("pngExport");button.disabled=true;status("Připravuji PNG…");
