@@ -75,7 +75,7 @@ function render(){
 const ENDPOINTS = [
   "https://overpass.private.coffee/api/interpreter",
   "https://overpass-api.de/api/interpreter",
-  "https://ovp.dresel.systems/api-eu/interpreter"
+  "https://ovp.dresel.systems/api/interpreter"
 ];
 const MAX_ENTRIES=5, CACHE_MS=30*60*1000;
 const dataCache=[];
