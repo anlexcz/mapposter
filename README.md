@@ -4,7 +4,7 @@ Webový generátor minimalistických mapových plakátů se zvýrazněním žele
 
 ## Aktuální funkce (MVP)
 - Vyhledání míst pomocí Nominatim / OpenStreetMap.
-- Interaktivní lokalizační mapka s přetažením, přiblížením a vyznačeným výřezem plakátu.
+- Interaktivní lokalizační mapka a přímé posouvání mapové části plakátu myší či prstem; kolečko myši nebo tlačítka ± mění přiblížení.
 - Načtení skutečných kolejí, silnic a budov z Overpass API (s náhradním endpointem).
 - Tmavý/světlý styl, volitelné barvy, vrstvy, natočení, záběr a poměr stran.
 - Editace názvu a podtitulu, zobrazení souřadnic.
@@ -22,7 +22,8 @@ Po publikaci: https://anlexcz.github.io/mapposter/
 ## Omezení a další kroky
 - Nyní se zvýrazňují všechny železniční a tramvajové cesty ve zvoleném záběru; ruční výběr jednotlivých kolejí ještě není implementován.
 - Přesnost dat závisí na OpenStreetMap. Rozsáhlé oblasti mohou překročit limity Overpass API; API může být dočasně nedostupné.
-- Přetažení lokální mapky změní souřadnice plakátu a po krátké prodlevě načte nová data. Rozsah červeného rámečku je orientační; skutečný výřez zohledňuje i případné natočení plakátu.
+- Přetažení plakátu nebo lokalizační mapky změní souřadnice výřezu a po krátké prodlevě načte nová data. Rozsah červeného rámečku je orientační; skutečný výřez zohledňuje i případné natočení plakátu.
+- Načítání Overpass je rozděleno do rychlejšího dotazu pro koleje a samostatného dotazu pro budovy/ulice, s náhradními servery a chybovým stavem. Při výpadku všech veřejných serverů mapa nemůže být vykreslena.
 - Export SVG používá systémové náhradní fonty, pokud není instalován Barlow Condensed; plné vložení fontů do SVG není hotové.
 - Tiskové PDF a ukládání projektů budou následovat později.
 - Aplikace neposílá vybraná místa na vlastní server, ale komunikuje s veřejnými službami Nominatim a Overpass. Respektujte jejich provozní a rate-limit zásady.
