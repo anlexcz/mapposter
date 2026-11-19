@@ -1,6 +1,6 @@
 "use strict";
 const $ = id => document.getElementById(id);
-const state = {lat:50.052,lon:14.471,ways:[],color:"#ff3600",loading:false};
+const state = {lat:50.132,lon:14.4515,ways:[],color:"#ff3600",loading:false};
 const escapeXML = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&apos;"}[c]));
 const WIDTH = 800;
 const formats = {"2:3":1200,"3:4":1067,"1:1":800};
@@ -106,14 +106,14 @@ async function loadMap(){
  const b=bbox(), bounds=[b.south,b.west,b.north,b.east].join(",");
  const railQuery='[out:json][timeout:18];(way["railway"~"^(rail|tram|light_rail|subway|narrow_gauge)$"]('+bounds+'););out geom;';
  const contextQuery='[out:json][timeout:18];(way["highway"]('+bounds+');way["building"]('+bounds+'););out geom;';
- const railJob=fetchOverpass(railQuery,controller.signal);
- const contextJob=fetchOverpass(contextQuery,controller.signal);
+ const railJob=fetchOverpass(railQuery,controller.signal).then(value=>({value}),error=>({error}));
+ const contextJob=fetchOverpass(contextQuery,controller.signal).then(value=>({value}),error=>({error}));
  // Handle each promise immediately so one rejected request never becomes unhandled.
- const railResult=await railJob.then(value=>({value}),error=>({error}));
+ const railResult=await railJob;
  if(version!==requestVersion)return;
  if(railResult.value){state.ways=railResult.value;render();status("Koleje: "+state.ways.length+" · načítám okolí…");}
  else {status("Koleje se nenačetly: "+String(railResult.error?.message||"chyba").slice(0,110));}
- const contextResult=await contextJob.then(value=>({value}),error=>({error}));
+ const contextResult=await contextJob;
  if(version!==requestVersion)return;
  if(contextResult.value){
   state.ways=[...(railResult.value||[]),...contextResult.value];render();
@@ -210,17 +210,17 @@ function initializePicker(){
   if(pickerBusy)return;
   const c=picker.getCenter();state.lat=c.lat;state.lon=c.lng;
   updateCoordinateLabel();updatePickerOutline();render();
-  status("Výřez změněn – načítám mapová data");
+  status("Výřez změněn – aktualizuji koleje…");
   requestReload(600);
  });
  picker.on("zoomend",()=>{
   if(pickerBusy)return;
   const suggested=Math.min(4,Math.max(.4,1.4*Math.pow(2,14-picker.getZoom())));
   $("radius").value=(Math.round(suggested*5)/5).toFixed(1);
-  updatePickerOutline();render();
+  updatePickerOutline();render();requestReload(600);
  });
  $("resetPosition").addEventListener("click",()=>{
-  state.lat=50.052;state.lon=14.471;$("radius").value="1.4";
+  state.lat=50.132;state.lon=14.4515;$("radius").value="1.4";
   pickerBusy=true;picker.setView([state.lat,state.lon],14,{animate:false});updatePickerOutline();pickerBusy=false;
   updateCoordinateLabel();render();requestReload(100);
  });
