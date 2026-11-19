@@ -29,3 +29,15 @@ input[type=range],.checks input{accent-color:var(--anlex)}
 #locationPicker .leaflet-interactive{cursor:grab}
 #locationPicker .leaflet-container{font-family:Montserrat,sans-serif}
 @media(max-width:600px){#locationPicker{height:240px}.picker-head{align-items:start;flex-direction:column;gap:4px}}
+
+/* Direct on-poster navigation */
+.poster-column{width:min(100%,500px);min-width:0}
+.poster-toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;color:#c3cdd7;font-size:10px;letter-spacing:.01em;margin:0 0 10px;line-height:1.4}
+.poster-toolbar strong{color:#ff3600;font-size:10px;letter-spacing:.11em;margin-right:6px}
+.poster-zoom{display:flex;gap:5px;flex:none}
+.poster-zoom button{height:32px;width:32px;padding:0;font-size:19px;background:#252d38}
+.stage #poster{width:100%;max-width:440px;margin:0 auto;cursor:grab;touch-action:none;user-select:none}
+.stage #poster.dragging{cursor:grabbing}
+.stage #poster svg{pointer-events:none;user-select:none}
+.workspace-head #status{max-width:390px;overflow-wrap:anywhere}
+@media(max-width:600px){.poster-toolbar{align-items:flex-start}.stage #poster{touch-action:none}}
