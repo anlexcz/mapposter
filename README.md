@@ -1,36 +1,39 @@
-# MapPoster Studio
+# MapPoster Studio 2.0
 
-Webový generátor minimalistických mapových plakátů se zvýrazněním železničních a tramvajových kolejí.
+Interaktivní generátor mapových plakátů. Pětikrokový průvodce a živý náhled mapy přímo v plakátu.
 
-## Aktuální funkce (MVP)
-- Vyhledání míst pomocí Nominatim / OpenStreetMap.
-- Interaktivní lokalizační mapka a přímé posouvání mapové části plakátu myší či prstem; kolečko myši nebo tlačítka ± mění přiblížení.
-- Načtení skutečných kolejí, silnic a budov jedním dotazem Overpass API, se třemi záložními servery, timeouty a stavovou diagnostikou.
-- Tmavý/světlý styl, volitelné barvy, vrstvy, natočení, záběr a poměr stran.
-- Editace názvu a podtitulu, zobrazení souřadnic.
-- Export do SVG a PNG (2400 px na šířku), povolený jen po získání geografických dat.
-- Responzivní editor bez backendu.
+## Stack
+- React 19 + TypeScript + Vite
+- MapLibre GL JS
+- OpenFreeMap vector tiles, založené na datech OpenStreetMap
+- GitHub Pages (statický web, bez backendu)
+
+## Wizard
+1. **Lokalita:** vyhledání v Nominatim, kliknutím na výsledek přejde mapa na místo
+2. **Kompozice:** poměr stran 2:3, 3:4, 1:1; přiblížení, otočení a posunutí přímo na mapě
+3. **Mapové vrstvy:** přepínače kolejí, silnic, budov a popisků
+4. **Vzhled:** dark/light, barva zvýraznění, nadpis a podtitulek
+5. **Export:** aktuální mapový výřez + textové prvky do PNG
+
+Nastavení se automaticky ukládá do localStorage.
 
 ## Spuštění
-Statické HTML/CSS/JS: otevřete web přes lokální HTTP server, například `python -m http.server 8080` a `http://localhost:8080`. Pro běh v produkci použijte GitHub Pages.
+```bash
+npm install
+npm run dev
+npm run build
+```
+Nasazení GitHub Pages zajišťuje `.github/workflows/pages.yml` (build do `dist/`).
 
-## Publikace
-Workflow `.github/workflows/pages.yml` nasazuje větev `main` do GitHub Pages. V nastavení repozitáře **Settings → Pages → Build and deployment → Source** vyberte **GitHub Actions**.
+## Omezení
+- Živé mapové dlaždice vyžadují internet a WebGL. Při nedostupnosti zdroje se zobrazí stav načítání.
+- Vyhledávání používá Nominatim a mělo by se používat šetrně, bez automatického dotazování při každém stisku klávesy.
+- Zvýraznění kolejí závisí na obsahu vektorových dlaždic OpenFreeMap. Detail odstavných kolejí nemusí být v každé úrovni přiblížení dostupný.
+- **Export je zatím PNG**, nikoli skutečně vektorové SVG ani PDF.
+- PNG export skládá živý WebGL canvas a texty do 1600px plátna; podklad z mapy je zvětšen z rozlišení aktuálního náhledu.
+- Není zde záložní samostatný server a data se nevyžadují přes Overpass API.
+- Textový export používá dostupné webové fonty s náhradními systémovými fonty.
+- Copyright: © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), data ODbL. Připsání je součástí plakátu.
 
-Po publikaci: https://anlexcz.github.io/mapposter/
-
-## Omezení a další kroky
-- Nyní se zvýrazňují všechny železniční a tramvajové cesty ve zvoleném záběru; ruční výběr jednotlivých kolejí ještě není implementován.
-- Přesnost dat závisí na OpenStreetMap. Rozsáhlé oblasti mohou překročit limity Overpass API; API může být dočasně nedostupné.
-- Přetažení plakátu nebo lokalizační mapky změní souřadnice výřezu a po krátké prodlevě načte nová data. Rozsah červeného rámečku je orientační; skutečný výřez zohledňuje i případné natočení plakátu.
-- Načítání Overpass je rozděleno do rychlejšího dotazu pro koleje a samostatného dotazu pro budovy/ulice, s náhradními servery a chybovým stavem. Při výpadku všech veřejných serverů mapa nemůže být vykreslena.
-- Export SVG používá systémové náhradní fonty, pokud není instalován Barlow Condensed; plné vložení fontů do SVG není hotové.
-- Tiskové PDF a ukládání projektů budou následovat později.
-- Aplikace neposílá vybraná místa na vlastní server, ale komunikuje s veřejnými službami Nominatim a Overpass. Respektujte jejich provozní a rate-limit zásady.
-- Úspěšné dotazy se dočasně uchovávají v paměti pro posouvání a přiblížení v již načtené oblasti. Veřejná API mohou být nedostupná; žádná data se v takovém případě nevymýšlejí.
-
-## Testování
-Offline testy běží přes \`node --test tests/*.test.cjs\`. Kontrolují vykreslení modelových OSM geometrických dat, cache, přepnutí záložního serveru a chybové stavy. Jsou součástí GitHub Actions před nasazením. Neověřují dostupnost živých serverů Overpass.
-
-## Data a licence
-Mapová data © [přispěvatelé OpenStreetMap](https://www.openstreetmap.org/copyright), [ODbL](https://opendatacommons.org/licenses/odbl/). Aplikace musí zachovat atribuci v exportech. Vlastní kód pod licencí repozitáře.
+## Stav
+První funkční implementace wizardu. Před produkčním použitím ověřit běh GitHub Actions a export PNG v prohlížeči.
