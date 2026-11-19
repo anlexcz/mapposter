@@ -1,6 +1,6 @@
 "use strict";
 const $ = id => document.getElementById(id);
-const state = {lat:50.052,lon:14.471,ways:[],color:"#c02caa",loading:false};
+const state = {lat:50.052,lon:14.471,ways:[],color:"#ff3600",loading:false};
 const escapeXML = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&apos;"}[c]));
 const WIDTH = 800;
 const formats = {"2:3":1200,"3:4":1067,"1:1":800};
@@ -73,7 +73,7 @@ async function loadMap(){
  if(state.loading)return;state.loading=true;$("load").disabled=true;status("Načítám OpenStreetMap…");
  const b=bbox();
  const q='[out:json][timeout:35];(way["railway"]('+b.south+','+b.west+','+b.north+','+b.east+');way["highway"]('+b.south+','+b.west+','+b.north+','+b.east+');way["building"]('+b.south+','+b.west+','+b.north+','+b.east+'););out geom;';
- const hosts=["https://overpass.kumi.systems/api/interpreter","https://overpass-api.de/api/interpreter"];
+ const hosts=["https://overpass.private.coffee/api/interpreter","https://overpass.kumi.systems/api/interpreter","https://overpass-api.de/api/interpreter"];
  let error=null;
  for(const host of hosts){
   try{
@@ -96,25 +96,74 @@ $("searchForm").addEventListener("submit",async e=>{
   const url="https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=cs&q="+encodeURIComponent(q);
   const response=await fetch(url,{headers:{"Accept":"application/json"}});
   if(!response.ok)throw new Error("HTTP "+response.status);
-  const results=await response.json();if(!results.length){status("Nic nenalezeno");return;}
+  const results=await response.json();if(!results.length){status("Nic nenalezeno – posuň mapu ručně");return;}
   for(const item of results){
    const btn=document.createElement("button");btn.type="button";btn.textContent=item.display_name;
-   btn.addEventListener("click",()=>{state.lat=Number(item.lat);state.lon=Number(item.lon);$("results").replaceChildren();$("search").value=item.display_name.split(",")[0];$("titleText").value=item.display_name.split(",")[0].toLocaleUpperCase("cs-CZ");state.ways=[];render();loadMap()});
+   btn.addEventListener("click",()=>{state.lat=Number(item.lat);state.lon=Number(item.lon);$("results").replaceChildren();$("search").value=item.display_name.split(",")[0];$("titleText").value=item.display_name.split(",")[0].toLocaleUpperCase("cs-CZ");state.ways=[];syncPicker();render();loadMap()});
    $("results").append(btn);
   }
-  status("Vyber výsledek hledání");
+  status("Vyber výsledek hledání nebo posuň mapu");
  }catch(err){status("Vyhledávání se nezdařilo");console.error(err)}
 });
 document.querySelectorAll("[data-move]").forEach(btn=>btn.addEventListener("click",()=>{
  const [dx,dy]=btn.dataset.move.split(",").map(Number);const b=bbox();
  state.lon+=dx*(b.east-b.west)*.18;state.lat-=dy*(b.north-b.south)*.18;
- state.ways=[];render();loadMap();
+ state.ways=[];syncPicker();
+let picker=null, pickerOutline=null, pickerTimer=null, pickerBusy=false;
+function updateCoordinateLabel(){
+ const ns=state.lat>=0?"N":"S",ew=state.lon>=0?"E":"W";
+ $("centerCoordinates").textContent=Math.abs(state.lat).toFixed(4)+"° "+ns+", "+Math.abs(state.lon).toFixed(4)+"° "+ew;
+}
+function syncPicker(){
+ updateCoordinateLabel();
+ if(!picker)return;
+ pickerBusy=true;
+ picker.panTo([state.lat,state.lon],{animate:false});
+ updatePickerOutline();
+ pickerBusy=false;
+}
+function updatePickerOutline(){
+ if(!picker || !pickerOutline)return;
+ const box=bbox();
+ pickerOutline.setBounds([[box.south,box.west],[box.north,box.east]]);
+}
+function initializePicker(){
+ updateCoordinateLabel();
+ if(typeof L==="undefined"){status("Mapový podklad se nepodařilo načíst");return;}
+ picker=L.map("locationPicker",{zoomControl:true,scrollWheelZoom:true,attributionControl:true}).setView([state.lat,state.lon],14);
+ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+  subdomains:"abc",maxZoom:19,attribution:"© OpenStreetMap contributors"
+ }).addTo(picker);
+ const b=bbox();
+ pickerOutline=L.rectangle([[b.south,b.west],[b.north,b.east]],{color:"#ff3600",weight:2,fillColor:"#ff3600",fillOpacity:.09,interactive:false}).addTo(picker);
+ picker.on("moveend",()=>{
+  if(pickerBusy)return;
+  const c=picker.getCenter();state.lat=c.lat;state.lon=c.lng;
+  updateCoordinateLabel();updatePickerOutline();state.ways=[];render();
+  status("Výřez změněn – načítám mapová data");
+  clearTimeout(pickerTimer);pickerTimer=setTimeout(loadMap,900);
+ });
+ picker.on("zoomend",()=>{
+  if(pickerBusy)return;
+  const suggested=Math.min(4,Math.max(.4,1.4*Math.pow(2,14-picker.getZoom())));
+  $("radius").value=(Math.round(suggested*5)/5).toFixed(1);
+  updatePickerOutline();render();
+ });
+ $("resetPosition").addEventListener("click",()=>{
+  state.lat=50.052;state.lon=14.471;$("radius").value="1.4";state.ways=[];
+  pickerBusy=true;picker.setView([state.lat,state.lon],14,{animate:false});updatePickerOutline();pickerBusy=false;
+  updateCoordinateLabel();render();loadMap();
+ });
+ setTimeout(()=>picker.invalidateSize(),100);
+}
+
+initializePicker();render();loadMap();
 }));
 $("load").addEventListener("click",loadMap);
 for(const id of ["titleText","subtitle","scheme","rail","tram","roads","buildings","rotation","format"]){
  $(id).addEventListener("input",render);
 }
-$("radius").addEventListener("input",()=>{state.ways=[];render();status("Změnil se záběr – klikni na Načíst mapová data")});
+$("radius").addEventListener("input",()=>{state.ways=[];syncPicker();render();status("Nový výřez – načti mapová data")});
 $("swatches").addEventListener("click",e=>{
  const btn=e.target.closest("[data-color]");if(!btn)return;state.color=btn.dataset.color;
  $("customColor").value=state.color;
