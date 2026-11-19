@@ -1,39 +1,46 @@
-# MapPoster Studio 2.0
+# MapPoster Studio 3.0
 
-Interaktivní generátor mapových plakátů. Pětikrokový průvodce a živý náhled mapy přímo v plakátu.
+Generátor mapových plakátů s průvodcem v pěti krocích. Zdrojový kód je veřejný, nasazuje se přes GitHub Pages.
 
-## Stack
-- React 19 + TypeScript + Vite
-- MapLibre GL JS
-- OpenFreeMap vector tiles, založené na datech OpenStreetMap
-- GitHub Pages (statický web, bez backendu)
+## Architektura
 
-## Wizard
-1. **Lokalita:** vyhledání v Nominatim, kliknutím na výsledek přejde mapa na místo
-2. **Kompozice:** poměr stran 2:3, 3:4, 1:1; přiblížení, otočení a posunutí přímo na mapě
-3. **Mapové vrstvy:** přepínače kolejí, silnic, budov a popisků
-4. **Vzhled:** dark/light, barva zvýraznění, nadpis a podtitulek
-5. **Export:** aktuální mapový výřez + textové prvky do PNG
-
-Nastavení se automaticky ukládá do localStorage.
+- React + Vite, MapLibre GL JS
+- Vektorový podklad OpenFreeMap ve stylu Liberty nebo Bright
+- Žádné požadavky na Overpass API a žádné plošné přepisování všech vrstev podkladu
+- Možnost zvýraznění kolejí jednoduchou doplňkovou vrstvou (pokud jsou potřebné informace ve vector tiles)
+- Výběr lokality přes Nominatim, ruční posouvání a přiblížení přímo na mapě uvnitř plakátu
+- Samostatný textový a barevný rám plakátu
+- Export PNG ze současného WebGL náhledu (není to vektorový export)
+- Automatické ukládání nastavení lokálně v prohlížeči do `mapposter-clean-v3`
 
 ## Spuštění
+
 ```bash
 npm install
 npm run dev
 npm run build
 ```
-Nasazení GitHub Pages zajišťuje `.github/workflows/pages.yml` (build do `dist/`).
 
-## Omezení
-- Živé mapové dlaždice vyžadují internet a WebGL. Při nedostupnosti zdroje se zobrazí stav načítání.
-- Vyhledávání používá Nominatim a mělo by se používat šetrně, bez automatického dotazování při každém stisku klávesy.
-- Zvýraznění kolejí závisí na obsahu vektorových dlaždic OpenFreeMap. Detail odstavných kolejí nemusí být v každé úrovni přiblížení dostupný.
-- **Export je zatím PNG**, nikoli skutečně vektorové SVG ani PDF.
-- PNG export skládá živý WebGL canvas a texty do 1600px plátna; podklad z mapy je zvětšen z rozlišení aktuálního náhledu.
-- Není zde záložní samostatný server a data se nevyžadují přes Overpass API.
-- Textový export používá dostupné webové fonty s náhradními systémovými fonty.
-- Copyright: © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), data ODbL. Připsání je součástí plakátu.
+Build vytváří složku `dist` a GitHub Actions ji publikuje na GitHub Pages. V repozitáři musí být v Settings → Pages nastaveno **Source: GitHub Actions**.
 
-## Stav
-První funkční implementace wizardu. Před produkčním použitím ověřit běh GitHub Actions a export PNG v prohlížeči.
+## Průvodce
+
+1. Lokalita – vyhledávání místa nebo přímé posouvání mapy
+2. Kompozice – formát, zoom, natočení
+3. Vrstvy – výchozí mapový styl a volitelné zvýraznění kolejí
+4. Vzhled – Anlex červená, barva pozadí plakátu a texty
+5. Export – PNG
+
+## Co ještě není hotové
+
+- Detailní selektor jednotlivých kolejí a zaručeně úplná geometrie vozoven
+- Plně černobílá mapa v původním plakátovém stylu
+- Tiskově přesný SVG nebo PDF export
+- Nezávislý render mapy ve vysokém rozlišení: PNG používá aktuální WebGL viewport, který je při exportu zvětšen
+- Automatické integrační testy s živými geografickými dlaždicemi
+
+Při potížích s načtením mapy lze zobrazit diagnostický stav přímo uvnitř plakátu a zkusit načtení znovu.
+
+## Mapová data
+
+© [OpenStreetMap contributors](https://www.openstreetmap.org/copyright) (ODbL). Mapové dlaždice z veřejné infrastruktury OpenFreeMap. Vyhledávání Nominatim je určené k příležitostnému použití, nikoli k automatickému dotazování při každém stisku klávesy.
