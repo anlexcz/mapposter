@@ -121,7 +121,15 @@ export default function App(){
    if(!ok)setDetail('Zvýraznění jednotlivých kolejí tento styl nemusí podporovat.');
   });
   map.on('idle',()=>{
-   setMapPhase('ready');setStatus('Mapa připravena');
+   // The style can report idle even if no visible map pixels were rendered.
+   const canvas=map.getCanvas();
+   if(mapHasVisibleContent(canvas)){
+    setMapPhase('ready');setStatus('Mapa připravena');
+   }else{
+    setMapPhase('error');
+    setStatus('Mapové podklady jsou prázdné');
+    setDetail('MapLibre nedokázal vykreslit mapové dlaždice. Zkus znovu načíst mapu nebo přepnout Liberty / Bright.');
+   }
   });
   map.on('error',event=>{
    console.warn('MapLibre map error',event.error);
