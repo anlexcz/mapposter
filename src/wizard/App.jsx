@@ -119,6 +119,7 @@ export default function App(){
    });
   }catch(error){setMapPhase('error');setStatus('Mapu nelze spustit');setDetail(String(error));return;}
   mapRef.current=map;
+  let triedRasterFallback=false;
   map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-left');
   map.on('style.load',()=>{
    setStatus('Mapový styl načten, čekám na dlaždice…');
@@ -132,9 +133,17 @@ export default function App(){
    if(mapHasVisibleContent(canvas)){
     setMapPhase('ready');setStatus('Mapa připravena');
    }else{
-    setMapPhase('error');
-    setStatus('Mapové podklady jsou prázdné');
-    setDetail('MapLibre nevykreslil geografická data. V kroku Vrstvy můžeš přepnout na záložní podklad OpenStreetMap.');
+    if(!triedRasterFallback && settings.current.style!=='raster'){
+     triedRasterFallback=true;
+     setStatus('Vektorová mapa je prázdná, zkouším záložní podklad…');
+     setDetail('OpenFreeMap nevrátil viditelný obraz; přepínám na rastrovou mapu OpenStreetMap.');
+     setS(prev=>({...prev,style:'raster'}));
+     map.setStyle(STYLES.raster);
+    }else{
+     setMapPhase('error');
+     setStatus('Mapové podklady jsou prázdné');
+     setDetail('Ani záložní podklad se nevykreslil. Zkontroluj síťové požadavky nebo WebGL.');
+    }
    }
   });
   map.on('error',event=>{
