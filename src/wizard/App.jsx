@@ -39,6 +39,52 @@ function textLines(ctx,text,maxWidth){
  if(line)lines.push(line);
  return lines.slice(0,3);
 }
+// A loaded map style is not proof that the WebGL framebuffer has geographic content.
+// Inspect pixels and fail closed instead of generating a misleading empty poster.
+function mapHasVisibleContent(canvas){
+ const width=canvas.width,height=canvas.height;
+ if(width<2||height<2)return false;
+ const probe=document.createElement('canvas');
+ probe.width=32;probe.height=32;
+ const ctx=probe.getContext('2d',{willReadFrequently:true});
+ if(!ctx)return false;
+ ctx.drawImage(canvas,0,0,32,32);
+ const pixels=ctx.getImageData(0,0,32,32).data;
+ const bins=new Set();
+ let opaque=0;
+ for(let y=3;y<29;y+=3)for(let x=3;x<29;x+=3){
+  const p=(y*32+x)*4;
+  if(pixels[p+3]<40)continue;
+  opaque++;
+  bins.add([pixels[p]>>4,pixels[p+1]>>4,pixels[p+2]>>4].join(':'));
+ }
+ return opaque>15 && bins.size>=4;
+}
+function waitForMapFrame(map,timeoutMs=6500){
+ return new Promise((resolve,reject)=>{
+  let finished=false;
+  const finish=(error)=>{
+   if(finished)return;
+   finished=true;clearTimeout(timer);map.off('render',onRender);
+   if(error)reject(error);else resolve();
+  };
+  const onRender=()=>{requestAnimationFrame(()=>requestAnimationFrame(()=>finish()));};
+  const timer=setTimeout(()=>finish(Error('MapLibre nevykreslil nový snímek')),timeoutMs);
+  map.on('render',onRender);
+  map.resize();
+  map.triggerRepaint();
+ });
+}
+async function readableMapFrame(map){
+ // Do not trust idle alone: a WebGL canvas may have been cleared by the browser.
+ for(let attempt=0;attempt<3;attempt++){
+  await waitForMapFrame(map);
+  const canvas=map.getCanvas();
+  if(mapHasVisibleContent(canvas))return canvas;
+ }
+ throw Error('Mapový podklad je prázdný. Export byl zastaven. Zkontroluj dlaždice/WebGL a zkus mapu znovu načíst.');
+}
+
 export default function App(){
  const [s,setS]=useState(load);
  const [step,setStep]=useState(0);
@@ -140,7 +186,7 @@ export default function App(){
    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
    const ctx=canvas.getContext('2d');if(!ctx)throw Error('Canvas není dostupný');
    ctx.fillStyle=s.paper==='dark'?'#101215':'#f6f5f1';ctx.fillRect(0,0,w,h);
-   const photo=map.getCanvas();
+   const photo=await readableMapFrame(map);
    if(!photo.width||!photo.height)throw Error('Mapový obraz není k dispozici');
    const mh=Math.round(h*.76);
    ctx.drawImage(photo,0,0,photo.width,photo.height,0,0,w,mh);
