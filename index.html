@@ -18,7 +18,7 @@
   <section class="panel"><div class="eyebrow">01 / LOKALITA</div><h2>Vyber místo</h2>
     <form id="searchForm" class="search"><input id="search" aria-label="Hledat místo" placeholder="Nádraží, město, vozovna…" value="Vozovna Kobylisy, Praha"><button type="submit">Hledat</button></form>
     <div id="results" class="results" aria-live="polite"></div>
-    <div class="picker-head"><strong>Výřez plakátu</strong><span>Táhni mapu nebo přibližuj</span></div>
+    <div class="picker-head"><strong>Orientační mapa</strong><span>Hlavní výřez upravíš na plakátu</span></div>
     <div id="locationPicker" aria-label="Interaktivní výběr lokality na mapě"></div>
     <div class="picker-bottom"><span id="centerCoordinates">50.0520° N, 14.4710° E</span><button id="resetPosition" type="button">Zpět na Prahu</button></div>
     <div class="field"><label for="titleText">Název plakátu</label><input id="titleText" value="VOZOVNA KOBYLISY" maxlength="100"></div>
@@ -38,7 +38,7 @@
   <section class="panel"><div class="eyebrow">03 / EXPORT</div><h2>Stáhnout plakát</h2><div class="export"><button id="svgExport" class="primary">Export SVG</button><button id="pngExport">Export PNG</button></div><p class="helper">PNG export: 2400 px na šířku. SVG je vektorový soubor vhodný pro tisk.</p></section>
 </aside>
 <section class="workspace"><div class="workspace-head"><div><div class="eyebrow">ŽIVÝ NÁHLED</div><h1>Tvůj mapový plakát</h1></div><div id="status" role="status" aria-live="polite">Připraveno k načtení</div></div>
-<div class="stage"><div id="poster" aria-label="Náhled plakátu"></div></div>
+<div class="stage"><div class="poster-column"><div class="poster-toolbar"><span><strong>POSUN</strong> Táhni přímo plakát · kolečkem přibližuj</span><div class="poster-zoom"><button type="button" data-zoom="in" aria-label="Přiblížit plakát">+</button><button type="button" data-zoom="out" aria-label="Oddálit plakát">−</button></div></div><div id="poster" aria-label="Interaktivní plakát – táhni mapovou část pro posun"></div></div></div>
 <div class="hint">Mapové údaje © přispěvatelé OpenStreetMap · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Licence ODbL</a>. Výběr objektů závisí na úplnosti OpenStreetMap.</div></section>
 </main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
