@@ -68,59 +68,135 @@ function render(){
  $("radiusValue").textContent=numeric($("radius").value).toLocaleString("cs-CZ")+" km";
  $("rotationValue").textContent=$("rotation").value+"°";
 }
-function status(message){$("status").textContent=message}
-let requestVersion=0;
-let reloadTimer=null;
-function requestReload(delay=450){
- clearTimeout(reloadTimer);
- reloadTimer=setTimeout(()=>{if(!state.loading)loadMap();else {requestVersion++;loadMap();}},delay);
+// Fetch only after the user finishes adjusting the crop. A slightly larger
+// cached extent means small drags and zooms do not cause another API request.
+const ENDPOINTS = [
+  "https://overpass.private.coffee/api/interpreter",
+  "https://overpass-api.de/api/interpreter",
+  "https://ovp.dresel.systems/api-eu/interpreter"
+];
+const MAX_ENTRIES=5, CACHE_MS=30*60*1000;
+const dataCache=[];
+let requestVersion=0, activeController=null, reloadTimer=null;
+let activeCenter=null;
+function status(message,detail=""){
+  $("status").textContent=message;
+  if($("diagnostics")) $("diagnostics").textContent=detail;
 }
-async function fetchOverpass(query,signal){
- const hosts=["https://overpass.kumi.systems/api/interpreter","https://overpass.private.coffee/api/interpreter","https://overpass-api.de/api/interpreter"];
- const errors=[];
- for(const host of hosts){
-  if(signal.aborted)throw new DOMException("Zrušeno","AbortError");
+function requestReload(delay=750){
+  clearTimeout(reloadTimer);
+  reloadTimer=setTimeout(()=>loadMap(),delay);
+}
+function paddedBox(){
+  const b=bbox(), cx=(b.west+b.east)/2, cy=(b.south+b.north)/2;
+  const fx=1.8,fy=1.8;
+  return {west:cx-(b.east-b.west)*fx/2,east:cx+(b.east-b.west)*fx/2,
+          south:cy-(b.north-b.south)*fy/2,north:cy+(b.north-b.south)*fy/2};
+}
+function covers(outer,inner){
+  return outer.west<=inner.west && outer.east>=inner.east &&
+    outer.south<=inner.south && outer.north>=inner.north;
+}
+function findCache(b){
+  const now=Date.now();
+  return dataCache.find(item=>now-item.time<CACHE_MS && covers(item.box,b));
+}
+function storeCache(box,ways){
+  dataCache.unshift({box,ways,time:Date.now()});
+  if(dataCache.length>MAX_ENTRIES)dataCache.length=MAX_ENTRIES;
+}
+function buildQuery(bounds){
+  const b=[bounds.south,bounds.west,bounds.north,bounds.east].map(n=>n.toFixed(6)).join(",");
+  // Single Overpass query: one slot, one response, no concurrent public-API load.
+  return '[out:json][timeout:24];(way["railway"~"^(rail|tram|light_rail|subway|narrow_gauge)$"]('+b+');way["highway"]('+b+');way["building"]('+b+'););out geom;';
+}
+async function requestEndpoint(url,query,signal){
+  const local=new AbortController(),abort=()=>local.abort();
+  signal.addEventListener("abort",abort,{once:true});
+  const timer=setTimeout(()=>local.abort(),30000);
   try{
-   const controller=new AbortController();
-   const timeout=setTimeout(()=>controller.abort(),15000);
-   const abort=()=>controller.abort();
-   signal.addEventListener("abort",abort,{once:true});
-   try{
-    const response=await fetch(host,{method:"POST",body:new URLSearchParams({data:query}),signal:controller.signal});
-    if(!response.ok)throw new Error("HTTP "+response.status+" ("+new URL(host).hostname+")");
-    const data=await response.json();
-    if(!Array.isArray(data.elements))throw new Error("Server nevrátil seznam prvků");
-    return data.elements.filter(el=>el.type==="way"&&Array.isArray(el.geometry));
-   }finally{clearTimeout(timeout);signal.removeEventListener("abort",abort);}
-  }catch(err){if(signal.aborted)throw err;errors.push(err.message);}
- }
- throw new Error(errors.join(" / "));
+    const began=performance.now();
+    const response=await fetch(url,{
+      method:"POST",
+      headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8","Accept":"application/json"},
+      body:new URLSearchParams({data:query}),
+      signal:local.signal,
+      mode:"cors"
+    });
+    if(!response.ok){
+      const body=(await response.text().catch(()=>"")).replace(/<[^>]*>/g," ").trim().slice(0,90);
+      throw new Error("HTTP "+response.status+(body?" "+body:""));
+    }
+    const payload=await response.json();
+    if(!Array.isArray(payload.elements))throw new Error("Neplatná odpověď JSON");
+    const ways=payload.elements.filter(item=>item.type==="way" && Array.isArray(item.geometry) && item.geometry.length>=2);
+    return {ways,source:new URL(url).host,ms:Math.round(performance.now()-began)};
+  }finally{
+    clearTimeout(timer);
+    signal.removeEventListener("abort",abort);
+  }
 }
-let activeController=null;
+async function fetchWays(bounds,signal,version){
+  const query=buildQuery(bounds),errors=[];
+  for(const url of ENDPOINTS){
+    if(signal.aborted)throw new DOMException("Zrušeno","AbortError");
+    const host=new URL(url).host;
+    status("Načítám mapová data…", "Zdroj: "+host+" · pokus "+(errors.length+1)+"/"+ENDPOINTS.length);
+    try{return await requestEndpoint(url,query,signal);}
+    catch(error){
+      if(signal.aborted)throw error;
+      const detail=(error.name==="AbortError"?"timeout po 30 s":error.message);
+      errors.push(host+": "+detail);
+      console.warn("MapPoster / Overpass",host,error);
+    }
+  }
+  throw new Error(errors.join(" | "));
+}
+function summarize(ways){
+  let tracks=0,streets=0,buildings=0;
+  for(const way of ways){
+    if(way.tags?.railway)tracks++;
+    else if(way.tags?.highway)streets++;
+    else if(way.tags?.building)buildings++;
+  }
+  return {tracks,streets,buildings};
+}
 async function loadMap(){
- const version=++requestVersion;
- if(activeController)activeController.abort();
- const controller=new AbortController();activeController=controller;
- state.loading=true;$("load").disabled=true;
- status("Načítám koleje…");
- const b=bbox(), bounds=[b.south,b.west,b.north,b.east].join(",");
- const railQuery='[out:json][timeout:18];(way["railway"~"^(rail|tram|light_rail|subway|narrow_gauge)$"]('+bounds+'););out geom;';
- const contextQuery='[out:json][timeout:18];(way["highway"]('+bounds+');way["building"]('+bounds+'););out geom;';
- const railJob=fetchOverpass(railQuery,controller.signal).then(value=>({value}),error=>({error}));
- const contextJob=fetchOverpass(contextQuery,controller.signal).then(value=>({value}),error=>({error}));
- // Handle each promise immediately so one rejected request never becomes unhandled.
- const railResult=await railJob;
- if(version!==requestVersion)return;
- if(railResult.value){state.ways=railResult.value;render();status("Koleje: "+state.ways.length+" · načítám okolí…");}
- else {status("Koleje se nenačetly: "+String(railResult.error?.message||"chyba").slice(0,110));}
- const contextResult=await contextJob;
- if(version!==requestVersion)return;
- if(contextResult.value){
-  state.ways=[...(railResult.value||[]),...contextResult.value];render();
-  status("Mapa načtena: "+state.ways.length.toLocaleString("cs-CZ")+" objektů");
- }else if(railResult.value){status("Koleje načteny. Budovy/ulice nedostupné: "+String(contextResult.error?.message||"chyba").slice(0,95));}
- else status("Mapová data jsou nedostupná. Zkontroluj síť nebo zkus menší výřez.");
- if(version===requestVersion){state.loading=false;$("load").disabled=false;activeController=null;}
+  const b=bbox(),cached=findCache(b);
+  if(cached){
+    // Render cached data for every drag/zoom. Do not blank the poster.
+    if(activeController){activeController.abort();activeController=null;}
+    requestVersion++;
+    state.ways=cached.ways;state.loading=false;
+    $("load").disabled=false;render();
+    const counts=summarize(state.ways);
+    status("Mapa připravena (cache)",counts.tracks+" kolejí · "+counts.streets+" cest · "+counts.buildings+" budov");
+    return;
+  }
+  const version=++requestVersion,box=paddedBox();
+  if(activeController)activeController.abort();
+  const controller=new AbortController();activeController=controller;
+  state.loading=true;$("load").disabled=true;
+  status("Načítám mapová data…","Čekám na server OpenStreetMap");
+  try{
+    const result=await fetchWays(box,controller.signal,version);
+    if(version!==requestVersion)return;
+    if(!result.ways.length)throw new Error("Server vrátil 0 objektů pro vybranou oblast");
+    storeCache(box,result.ways);
+    state.ways=result.ways;render();
+    const counts=summarize(result.ways);
+    status("Mapa načtena",result.source+" · "+(result.ms/1000).toFixed(1)+" s · "+
+      counts.tracks+" kolejí · "+counts.streets+" cest · "+counts.buildings+" budov");
+  }catch(error){
+    if(version!==requestVersion || error.name==="AbortError")return;
+    status("Mapu nelze načíst",
+      "Overpass: "+error.message.slice(0,240)+". Zkus menší výřez nebo opakovat načtení.");
+    console.error("MapPoster data load",error);
+  }finally{
+    if(version===requestVersion){
+      activeController=null;state.loading=false;$("load").disabled=false;
+    }
+  }
 }
 
 $("searchForm").addEventListener("submit",async e=>{
@@ -133,7 +209,7 @@ $("searchForm").addEventListener("submit",async e=>{
   const results=await response.json();if(!results.length){status("Nic nenalezeno – posuň mapu ručně");return;}
   for(const item of results){
    const btn=document.createElement("button");btn.type="button";btn.textContent=item.display_name;
-   btn.addEventListener("click",()=>{state.lat=Number(item.lat);state.lon=Number(item.lon);$("results").replaceChildren();$("search").value=item.display_name.split(",")[0];$("titleText").value=item.display_name.split(",")[0].toLocaleUpperCase("cs-CZ");syncPicker();render();requestReload(100)});
+   btn.addEventListener("click",()=>{state.lat=Number(item.lat);state.lon=Number(item.lon);$("results").replaceChildren();$("search").value=item.display_name.split(",")[0];$("titleText").value=item.display_name.split(",")[0].toLocaleUpperCase("cs-CZ");syncPicker();render();requestReload(450)});
    $("results").append(btn);
   }
   status("Vyber výsledek hledání nebo posuň mapu");
@@ -210,7 +286,7 @@ function initializePicker(){
   if(pickerBusy)return;
   const c=picker.getCenter();state.lat=c.lat;state.lon=c.lng;
   updateCoordinateLabel();updatePickerOutline();render();
-  status("Výřez změněn – aktualizuji koleje…");
+  status("Výřez změněn","Načítání se spustí po dokončení posunu");
   requestReload(600);
  });
  picker.on("zoomend",()=>{
@@ -244,10 +320,10 @@ posterElement.addEventListener("pointermove",e=>{
  state.lon=drag.lon-dx*(box.east-box.west);
  state.lat=drag.lat+dy*(box.north-box.south)/.75;
  syncPicker();render();
- status("Posouvám plakát…");
+ status("Upravuji výřez…","Data se načtou po dokončení posunu");
 });
 function endPosterDrag(){
- if(!drag)return;drag=null;posterElement.classList.remove("dragging");requestReload(250);
+ if(!drag)return;drag=null;posterElement.classList.remove("dragging");requestReload(750);
 }
 posterElement.addEventListener("pointerup",endPosterDrag);
 posterElement.addEventListener("pointercancel",endPosterDrag);
