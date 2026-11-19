@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" crossorigin="">
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
@@ -14,18 +16,21 @@
 <main class="layout">
 <aside class="controls">
   <section class="panel"><div class="eyebrow">01 / LOKALITA</div><h2>Vyber místo</h2>
-    <form id="searchForm" class="search"><input id="search" aria-label="Hledat místo" placeholder="Nádraží, město, vozovna…" value="Praha, Česko"><button type="submit">Hledat</button></form>
+    <form id="searchForm" class="search"><input id="search" aria-label="Hledat místo" placeholder="Nádraží, město, vozovna…" value="Vozovna Kobylisy, Praha"><button type="submit">Hledat</button></form>
     <div id="results" class="results" aria-live="polite"></div>
-    <div class="field"><label for="titleText">Název plakátu</label><input id="titleText" value="PRAHA – ODSTAVNÉ NÁDRAŽÍ JIH" maxlength="100"></div>
+    <div class="picker-head"><strong>Výřez plakátu</strong><span>Táhni mapu nebo přibližuj</span></div>
+    <div id="locationPicker" aria-label="Interaktivní výběr lokality na mapě"></div>
+    <div class="picker-bottom"><span id="centerCoordinates">50.0520° N, 14.4710° E</span><button id="resetPosition" type="button">Zpět na Prahu</button></div>
+    <div class="field"><label for="titleText">Název plakátu</label><input id="titleText" value="VOZOVNA KOBYLISY" maxlength="100"></div>
     <div class="field"><label for="subtitle">Podtitulek</label><input id="subtitle" value="ČESKO" maxlength="100"></div>
-    <div class="field"><label for="radius">Šířka záběru <output id="radiusValue">2,4 km</output></label><input id="radius" type="range" min="0.6" max="6" step="0.2" value="2.4"></div>
+    <div class="field"><label for="radius">Šířka záběru <output id="radiusValue">1,4 km</output></label><input id="radius" type="range" min="0.4" max="4" step="0.2" value="1.4"></div>
     <div class="move"><span>Posunout záběr</span><div><button data-move="0,-1" aria-label="Nahoru">↑</button><button data-move="-1,0" aria-label="Doleva">←</button><button data-move="1,0" aria-label="Doprava">→</button><button data-move="0,1" aria-label="Dolů">↓</button></div></div>
     <button id="load" class="primary block">Načíst mapová data</button>
   </section>
   <section class="panel"><div class="eyebrow">02 / VZHLED</div><h2>Styl plakátu</h2>
-    <div class="field"><label for="scheme">Barevné schéma</label><select id="scheme"><option value="dark">Tmavé</option><option value="light">Světlé</option></select></div>
-    <div class="field"><label>Barva zvýraznění</label><div class="swatches" id="swatches"><button data-color="#c02caa" style="--sw:#c02caa" title="Fialová" class="active" aria-label="Fialová"></button><button data-color="#ff3600" style="--sw:#ff3600" title="Červená" aria-label="Červená"></button><button data-color="#005682" style="--sw:#005682" title="Modrá" aria-label="Modrá"></button><button data-color="#13b6b7" style="--sw:#13b6b7" title="Tyrkysová" aria-label="Tyrkysová"></button><button data-color="#e5ae37" style="--sw:#e5ae37" title="Zlatá" aria-label="Zlatá"></button></div></div>
-    <div class="field"><label for="customColor">Vlastní barva</label><input type="color" id="customColor" value="#c02caa"></div>
+    <div class="field"><label for="scheme">Barevné schéma</label><select id="scheme"><option value="dark">Anlex Dark</option><option value="light">Světlé</option></select></div>
+    <div class="field"><label>Barva zvýraznění</label><div class="swatches" id="swatches"><button data-color="#c02caa" style="--sw:#c02caa" title="Fialová" aria-label="Fialová"></button><button data-color="#ff3600" style="--sw:#ff3600" title="Anlexova červená" class="active" aria-label="Červená"></button><button data-color="#005682" style="--sw:#005682" title="Modrá" aria-label="Modrá"></button><button data-color="#13b6b7" style="--sw:#13b6b7" title="Tyrkysová" aria-label="Tyrkysová"></button><button data-color="#e5ae37" style="--sw:#e5ae37" title="Zlatá" aria-label="Zlatá"></button></div></div>
+    <div class="field"><label for="customColor">Vlastní barva</label><input type="color" id="customColor" value="#ff3600"></div>
     <div class="checks"><label><input id="rail" type="checkbox" checked> Železnice</label><label><input id="tram" type="checkbox" checked> Tramvajové koleje</label><label><input id="roads" type="checkbox" checked> Silnice a ulice</label><label><input id="buildings" type="checkbox" checked> Budovy</label></div>
     <div class="field"><label for="rotation">Natočení <output id="rotationValue">0°</output></label><input id="rotation" type="range" min="-180" max="180" step="1" value="0"></div>
     <div class="field"><label for="format">Poměr stran</label><select id="format"><option value="2:3">2:3 – plakát</option><option value="3:4">3:4 – portrét</option><option value="1:1">1:1 – čtverec</option></select></div>
@@ -36,6 +41,7 @@
 <div class="stage"><div id="poster" aria-label="Náhled plakátu"></div></div>
 <div class="hint">Mapové údaje © přispěvatelé OpenStreetMap · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Licence ODbL</a>. Výběr objektů závisí na úplnosti OpenStreetMap.</div></section>
 </main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="./src/app.js" defer></script>
 </body>
 </html>
