@@ -38,8 +38,8 @@ function svgMarkup(){
     if(layer==="road" && $("roads").checked){const wide=/^(motorway|trunk|primary|secondary)$/.test(tags.highway);layers.road.push('<path d="'+d+'" fill="none" stroke="'+(wide?pal.street:pal.minor)+'" stroke-width="'+(wide?2.1:1)+'" opacity="'+(wide?.78:.60)+'" stroke-linejoin="round" stroke-linecap="round"/>')}
     if((layer==="rail" && $("rail").checked)||(layer==="tram" && $("tram").checked))layers[layer].push('<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+(layer==="tram"?1.9:2.15)+'" opacity=".94" stroke-linejoin="round" stroke-linecap="round"/>');
   }
-  const title=escapeXML($("titleText").value || "MAP POSTER").toLocaleUpperCase("cs-CZ");
-  const subtitle=escapeXML($("subtitle").value || "");
+  const title=($("titleText").value || "MAP POSTER").toLocaleUpperCase("cs-CZ");
+  const subtitle=$("subtitle").value || "";
   const latDir=state.lat>=0?"N":"S",lonDir=state.lon>=0?"E":"W";
   const coords=Math.abs(state.lat).toFixed(4)+"°"+latDir+", "+Math.abs(state.lon).toFixed(4)+"°"+lonDir;
   const topH=Math.round(h*.77);
@@ -64,7 +64,9 @@ function svgMarkup(){
     '</svg>';
 }
 function render(){
- $("poster").innerHTML=svgMarkup();
+ $("poster").innerHTML=svgMarkup()+(state.ways.length?"":'<div class="poster-empty">Mapový podklad zatím není načtený</div>');
+ $("svgExport").disabled=!state.ways.length;
+ $("pngExport").disabled=!state.ways.length;
  $("radiusValue").textContent=numeric($("radius").value).toLocaleString("cs-CZ")+" km";
  $("rotationValue").textContent=$("rotation").value+"°";
 }
@@ -141,7 +143,7 @@ async function fetchWays(bounds,signal,version){
   for(const url of ENDPOINTS){
     if(signal.aborted)throw new DOMException("Zrušeno","AbortError");
     const host=new URL(url).host;
-    status("Načítám mapová data…", "Zdroj: "+host+" · pokus "+(errors.length+1)+"/"+ENDPOINTS.length);
+    status("Načítám mapová data…", "Zdroj: "+host+" · pokus "+(errors.length+1)+"/"+ENDPOINTS.length+" (max. 30 s)");
     try{return await requestEndpoint(url,query,signal);}
     catch(error){
       if(signal.aborted)throw error;
@@ -177,12 +179,14 @@ async function loadMap(){
   if(activeController)activeController.abort();
   const controller=new AbortController();activeController=controller;
   state.loading=true;$("load").disabled=true;
+  state.ways=[];render();
   status("Načítám mapová data…","Čekám na server OpenStreetMap");
   try{
     const result=await fetchWays(box,controller.signal,version);
     if(version!==requestVersion)return;
     if(!result.ways.length)throw new Error("Server vrátil 0 objektů pro vybranou oblast");
     storeCache(box,result.ways);
+    if(!covers(box,bbox())){requestReload(300);return;}
     state.ways=result.ways;render();
     const counts=summarize(result.ways);
     status("Mapa načtena",result.source+" · "+(result.ms/1000).toFixed(1)+" s · "+
