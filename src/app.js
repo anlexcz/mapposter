@@ -109,6 +109,42 @@ document.querySelectorAll("[data-move]").forEach(btn=>btn.addEventListener("clic
  const [dx,dy]=btn.dataset.move.split(",").map(Number);const b=bbox();
  state.lon+=dx*(b.east-b.west)*.18;state.lat-=dy*(b.north-b.south)*.18;
  state.ways=[];syncPicker();
+render();loadMap();
+}));
+$("load").addEventListener("click",loadMap);
+for(const id of ["titleText","subtitle","scheme","rail","tram","roads","buildings","rotation","format"]){
+ $(id).addEventListener("input",render);
+}
+$("radius").addEventListener("input",()=>{state.ways=[];syncPicker();render();status("Nový výřez – načti mapová data")});
+$("swatches").addEventListener("click",e=>{
+ const btn=e.target.closest("[data-color]");if(!btn)return;state.color=btn.dataset.color;
+ $("customColor").value=state.color;
+ document.querySelectorAll("[data-color]").forEach(b=>b.classList.toggle("active",b===btn));render();
+});
+$("customColor").addEventListener("input",e=>{state.color=e.target.value;document.querySelectorAll("[data-color]").forEach(b=>b.classList.remove("active"));render()});
+function download(blob,filename){
+ const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+const filename=()=>("mapposter-"+($("titleText").value||"mapa").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,55));
+$("svgExport").addEventListener("click",()=>download(new Blob([svgMarkup()],{type:"image/svg+xml;charset=utf-8"}),filename()+".svg"));
+$("pngExport").addEventListener("click",async()=>{
+ const button=$("pngExport");button.disabled=true;status("Připravuji PNG…");
+ try{
+  const markup=svgMarkup();const svgBlob=new Blob([markup],{type:"image/svg+xml;charset=utf-8"});
+  const url=URL.createObjectURL(svgBlob),img=new Image();
+  try{
+   await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error("Obrázek nelze dekódovat"));img.src=url;});
+   const canvas=document.createElement("canvas");canvas.width=2400;canvas.height=Math.round(2400*(formats[$("format").value]||1200)/WIDTH);
+   const ctx=canvas.getContext("2d");if(!ctx)throw new Error("Canvas není dostupný");
+   ctx.drawImage(img,0,0,canvas.width,canvas.height);
+   const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/png"));
+   if(!blob)throw new Error("PNG nelze vytvořit");
+   download(blob,filename()+".png");status("PNG exportováno");
+  }finally{URL.revokeObjectURL(url)}
+ }catch(e){console.error(e);status("Export PNG selhal – zkus SVG")}
+ button.disabled=false;
+});
+
 let picker=null, pickerOutline=null, pickerTimer=null, pickerBusy=false;
 function updateCoordinateLabel(){
  const ns=state.lat>=0?"N":"S",ew=state.lon>=0?"E":"W";
@@ -158,38 +194,3 @@ function initializePicker(){
 }
 
 initializePicker();render();loadMap();
-}));
-$("load").addEventListener("click",loadMap);
-for(const id of ["titleText","subtitle","scheme","rail","tram","roads","buildings","rotation","format"]){
- $(id).addEventListener("input",render);
-}
-$("radius").addEventListener("input",()=>{state.ways=[];syncPicker();render();status("Nový výřez – načti mapová data")});
-$("swatches").addEventListener("click",e=>{
- const btn=e.target.closest("[data-color]");if(!btn)return;state.color=btn.dataset.color;
- $("customColor").value=state.color;
- document.querySelectorAll("[data-color]").forEach(b=>b.classList.toggle("active",b===btn));render();
-});
-$("customColor").addEventListener("input",e=>{state.color=e.target.value;document.querySelectorAll("[data-color]").forEach(b=>b.classList.remove("active"));render()});
-function download(blob,filename){
- const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
-const filename=()=>("mapposter-"+($("titleText").value||"mapa").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,55));
-$("svgExport").addEventListener("click",()=>download(new Blob([svgMarkup()],{type:"image/svg+xml;charset=utf-8"}),filename()+".svg"));
-$("pngExport").addEventListener("click",async()=>{
- const button=$("pngExport");button.disabled=true;status("Připravuji PNG…");
- try{
-  const markup=svgMarkup();const svgBlob=new Blob([markup],{type:"image/svg+xml;charset=utf-8"});
-  const url=URL.createObjectURL(svgBlob),img=new Image();
-  try{
-   await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error("Obrázek nelze dekódovat"));img.src=url;});
-   const canvas=document.createElement("canvas");canvas.width=2400;canvas.height=Math.round(2400*(formats[$("format").value]||1200)/WIDTH);
-   const ctx=canvas.getContext("2d");if(!ctx)throw new Error("Canvas není dostupný");
-   ctx.drawImage(img,0,0,canvas.width,canvas.height);
-   const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/png"));
-   if(!blob)throw new Error("PNG nelze vytvořit");
-   download(blob,filename()+".png");status("PNG exportováno");
-  }finally{URL.revokeObjectURL(url)}
- }catch(e){console.error(e);status("Export PNG selhal – zkus SVG")}
- button.disabled=false;
-});
-render();loadMap();
