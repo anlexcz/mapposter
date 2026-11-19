@@ -5,10 +5,10 @@ Webový generátor minimalistických mapových plakátů se zvýrazněním žele
 ## Aktuální funkce (MVP)
 - Vyhledání míst pomocí Nominatim / OpenStreetMap.
 - Interaktivní lokalizační mapka a přímé posouvání mapové části plakátu myší či prstem; kolečko myši nebo tlačítka ± mění přiblížení.
-- Načtení skutečných kolejí, silnic a budov z Overpass API (s náhradním endpointem).
+- Načtení skutečných kolejí, silnic a budov jedním dotazem Overpass API, se třemi záložními servery, timeouty a stavovou diagnostikou.
 - Tmavý/světlý styl, volitelné barvy, vrstvy, natočení, záběr a poměr stran.
 - Editace názvu a podtitulu, zobrazení souřadnic.
-- Export do SVG a PNG (2400 px na šířku).
+- Export do SVG a PNG (2400 px na šířku), povolený jen po získání geografických dat.
 - Responzivní editor bez backendu.
 
 ## Spuštění
@@ -27,6 +27,10 @@ Po publikaci: https://anlexcz.github.io/mapposter/
 - Export SVG používá systémové náhradní fonty, pokud není instalován Barlow Condensed; plné vložení fontů do SVG není hotové.
 - Tiskové PDF a ukládání projektů budou následovat později.
 - Aplikace neposílá vybraná místa na vlastní server, ale komunikuje s veřejnými službami Nominatim a Overpass. Respektujte jejich provozní a rate-limit zásady.
+- Úspěšné dotazy se dočasně uchovávají v paměti pro posouvání a přiblížení v již načtené oblasti. Veřejná API mohou být nedostupná; žádná data se v takovém případě nevymýšlejí.
+
+## Testování
+Offline testy běží přes \`node --test tests/*.test.cjs\`. Kontrolují vykreslení modelových OSM geometrických dat, cache, přepnutí záložního serveru a chybové stavy. Jsou součástí GitHub Actions před nasazením. Neověřují dostupnost živých serverů Overpass.
 
 ## Data a licence
 Mapová data © [přispěvatelé OpenStreetMap](https://www.openstreetmap.org/copyright), [ODbL](https://opendatacommons.org/licenses/odbl/). Aplikace musí zachovat atribuci v exportech. Vlastní kód pod licencí repozitáře.
